@@ -1,0 +1,18 @@
+# Build outputs
+/out/
+/classes/
+classes.dex
+*.apk
+*.idsig
+
+# Signing keys — never commit these
+platform.pk8
+platform.x509.pem
+*.keystore
+*.jks
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
