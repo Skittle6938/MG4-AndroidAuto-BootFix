@@ -123,15 +123,33 @@ See [`build.ps1`](build.ps1) for a ready‑to‑run script (edit the paths at th
 
 ## Install
 
-```powershell
+### Option A — Direct APK install (recommended)
+
+1. Download **[aakick-signed.apk](https://github.com/Skittle6938/MG4-AndroidAuto-BootFix/raw/main/apk/aakick-signed.apk)**
+2. Copy it to a USB stick and plug it into the head unit's USB port
+3. Open the APK with the built-in file manager to install it
+
+> After installing, **restart the car (or the head unit)** with your phone plugged in —
+> Android Auto should then start on its own. To restart the unit, hold the Home button for
+> ~20 seconds until the screen turns off and it reboots.
+
+### Option B — ADB over USB
+
+ADB is disabled by default on the MG4 head unit. You need to enable it first using
+**ADB_util**, a tool developed by Leon Kerman:
+
+> [XDA thread — MG4 Electric AAOS 9 playing (and possibly other MG models)](https://xdaforums.com/t/mg4-electric-aaos-9-playing-and-possibly-other-mg-models.4697712/post-90591053)
+
+Once USB debugging is enabled:
+
+```bash
 adb push aakick-signed.apk /data/local/tmp/aakick.apk
 adb shell pm install -r -f /data/local/tmp/aakick.apk
 ```
 
-`pm install -f` is required on these `user` builds. The app is a normal (non‑persistent)
-package installed into `/data/app`, so this works without root.
-
-Then power‑cycle the car with the phone plugged in: Android Auto should start on its own.
+The app is a normal (non‑persistent) package installed into `/data/app`, so this works
+without root. It takes effect on the next boot — power‑cycle the car with the phone plugged
+in and Android Auto should start on its own.
 
 ## Verify / debug
 
