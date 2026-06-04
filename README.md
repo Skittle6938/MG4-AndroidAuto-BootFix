@@ -7,8 +7,9 @@ re‑plug** the cable to get it working.
 
 `com.mg4.aakick` makes that unplug/re‑plug happen automatically, in software, at boot.
 
-> Tested on an MG4 (EH32 platform, AOSP Automotive 9, MediaTek) with a Motorola Edge 60.
-> Other SAIC cars using the same Allgo/`caradapter` stack (MG/Roewe) may benefit too.
+> Tested on an MG4 (EH32 platform, AOSP Automotive 9, MediaTek) with an Android phone and
+> with a wireless Android Auto dongle. Other SAIC cars using the same Allgo/`caradapter`
+> stack (MG/Roewe) may benefit too.
 
 ---
 
