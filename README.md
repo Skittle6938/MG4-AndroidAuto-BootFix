@@ -7,9 +7,22 @@ re‑plug** the cable to get it working.
 
 `com.mg4.aakick` makes that unplug/re‑plug happen automatically, in software, at boot.
 
-> Tested on an MG4 (EH32 platform, AOSP Automotive 9, MediaTek) with an Android phone and
-> with a wireless Android Auto dongle. Other SAIC cars using the same Allgo/`caradapter`
-> stack (MG/Roewe) may benefit too.
+> Tested on an MG4 (EH32 platform, AOSP Automotive 9, MediaTek) with a wired Android phone.
+> Other SAIC cars using the same Allgo/`caradapter` stack (MG/Roewe) may benefit too.
+
+## Scope & limitations
+
+- ✅ **Works for a USB (wired) Android Auto phone** — a phone connected by cable that the
+  head unit fails to pick up. AA Kick re-enumerates it and re-triggers detection so the
+  AOAP switch happens and Android Auto starts.
+- ❌ **No solution (yet) for wireless Android Auto dongles.** A dongle is *always* in AOAP
+  mode, and when it gets stuck (e.g. after the phone toggles Wi-Fi/BT, it hangs on
+  "Connecting to Android Auto…"), the only thing that recovers it is **cutting its power**
+  (a physical unplug/replug). That blockage is internal to the dongle — software resets
+  from the head unit (`UsbDeviceConnection.resetDevice()`, AOAP control transfers, etc.)
+  have **no effect**, and the USB sysfs power controls are root-only on this locked unit.
+  Practical workarounds for a stuck dongle: use its **companion app's "restart" button**,
+  a **USB cable/hub with a power switch**, or simply replug it.
 
 ---
 
