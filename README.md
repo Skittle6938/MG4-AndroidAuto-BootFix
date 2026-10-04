@@ -15,14 +15,13 @@ re‑plug** the cable to get it working.
 - ✅ **Works for a USB (wired) Android Auto phone** — a phone connected by cable that the
   head unit fails to pick up. AA Kick re-enumerates it and re-triggers detection so the
   AOAP switch happens and Android Auto starts.
-- ❌ **No solution (yet) for wireless Android Auto dongles.** A dongle is *always* in AOAP
-  mode, and when it gets stuck (e.g. after the phone toggles Wi-Fi/BT, it hangs on
-  "Connecting to Android Auto…"), the only thing that recovers it is **cutting its power**
-  (a physical unplug/replug). That blockage is internal to the dongle — software resets
-  from the head unit (`UsbDeviceConnection.resetDevice()`, AOAP control transfers, etc.)
-  have **no effect**, and the USB sysfs power controls are root-only on this locked unit.
-  Practical workarounds for a stuck dongle: use its **companion app's "restart" button**,
-  a **USB cable/hub with a power switch**, or simply replug it.
+- ✅ **Wireless Android Auto dongles: fixes the Bluetooth race** (`BtGuardService`, see
+  [Wireless dongle fix](#wireless-dongle-fix-btguard)). When the head unit grabs the phone
+  over Bluetooth before the dongle does, AA never starts; AA Kick now keeps the head unit
+  out of the way until the dongle has the phone, at boot and when you come back to the car.
+- ❌ **Not covered: toggling the phone's Wi-Fi while driving.** The dongle only gets the phone
+  back when the phone's own Bluetooth restarts; nothing on the head unit side can trigger
+  that. Toggle the phone's Bluetooth off/on (or replug the dongle).
 
 ---
 
@@ -164,12 +163,57 @@ The app is a normal (non‑persistent) package installed into `/data/app`, so th
 without root. It takes effect on the next boot — power‑cycle the car with the phone plugged
 in and Android Auto should start on its own.
 
+## Wireless dongle fix (BtGuard)
+
+### The problem
+
+With a wireless AA dongle, Android Auto regularly fails to start: the dongle connects to the
+phone but nothing shows up on the car. Deleting the MG4 from the phone's Bluetooth devices
+fixes it, until AA re-pairs the car and it happens again.
+
+What the head unit logs show:
+
+- When the phone's Bluetooth comes up, the head unit (bonded, HFP client) connects to it
+  **first**, and the dongle loses its own Bluetooth handshake with the phone.
+- The dongle then enumerates on USB **without the phone** and answers the head unit itself,
+  with protocol 4.0 and a **"JVC Kenwood"** certificate:
+  `GalReceiver: Invalid peer certificate name JVC Kenwood` → `Shutting down connection due to auth failure.`
+  The Allgo stack never retries on that USB device.
+- A good session looks like `Phone reported protocol version 1.7` (the real phone behind the dongle).
+- Cutting the head unit's Bluetooth before the phone's Bluetooth restarts lets the dongle win
+  and AA comes up — confirmed by hand before writing the fix.
+
+### How BtGuard works
+
+`BtGuardService` sets the head unit's Bluetooth **client profile priorities** for bonded
+phones (`bluetooth_headset_priority_*`, `bluetooth_a2dp_src_priority_*`,
+`bluetooth_pbap_client_priority_*` in `Settings.Global`) to **OFF**. That stops automatic
+(re)connections without touching pairings or dropping a live link.
+
+- **Armed** while hands‑free is connected (so it is already in place at the next boot, even
+  after a hard reset), at shutdown and at boot, and when the phone leaves the car (hands‑free
+  gone with no AA session — a Wi‑Fi drop alone doesn't count). If the phone is already
+  connected when the service starts at boot, the head unit's Bluetooth is cycled.
+- **Released** as soon as a real AA session starts (detected from the AA stack's
+  `Service discovery callback called` log line). If hands‑free doesn't come back on its own
+  within 5 s, the head unit connects it, then re‑arms.
+- **Safety net:** if no AA session starts within 90 s of boot or of the phone coming back
+  (no dongle, AA disabled…), it releases and cycles the head unit's Bluetooth so the phone
+  reconnects normally.
+
+Manual control:
+
+```powershell
+adb shell am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_ARM
+adb shell am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_RELEASE
+```
+
 ## Verify / debug
 
 The head unit **filters DEBUG‑level logcat**, so AA Kick logs at ERROR level:
 
 ```powershell
-adb logcat -s AAKick
+adb logcat -s AAKick AABtGuard
 ```
 
 Ground truth for the AOAP switch (vendor id `6353` = `0x18d1` means accessory mode reached):
@@ -181,19 +225,24 @@ adb shell "dumpsys usb | grep vendor_id"
 ## Uninstall / revert
 
 ```powershell
+adb shell am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_RELEASE
 adb shell pm uninstall com.mg4.aakick
 ```
 
-Nothing else is modified on the system, so removing the app fully reverts the change.
+Release BtGuard first: otherwise the head unit's Bluetooth priorities stay OFF and it won't
+auto-connect to your phone. Apart from those priorities, nothing else is modified on the
+system, so this fully reverts the change.
 
 ## Project layout
 
 ```
 AndroidManifest.xml          # system-uid app, BOOT_COMPLETED receiver + service
 src/com/mg4/aakick/
-  BootReceiver.java          # starts the service on boot
+  BootReceiver.java          # starts the services on boot, arms BtGuard on shutdown
   KickService.java           # the detect → reset → re-broadcast logic
   KickWorker.java            # worker thread body
+  BtGuard.java               # stores/restores the Bluetooth profile priorities
+  BtGuardService.java        # wireless dongle fix: arm/release logic
 build.ps1                    # command-line build (no Gradle)
 ```
 

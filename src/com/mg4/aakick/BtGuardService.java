@@ -29,11 +29,13 @@ import java.util.Locale;
  * "JVC Kenwood" certificate (protocol 4.0), which the Allgo stack rejects
  * ("Invalid peer certificate name JVC Kenwood") and never retries.
  *
- * - Armed (head unit may not auto-connect to the phone): on shutdown, at boot, and when the
- *   phone leaves the car (hands-free gone with no AA session; a Wi-Fi drop alone doesn't count).
- * - Released: as soon as a real AA session starts (AA then re-pairs hands-free itself), or
- *   90 s after boot / after the phone comes back without AA, in which case Bluetooth is
- *   cycled so the head unit reconnects normally.
+ * - Armed (head unit may not auto-connect to the phone): stored whenever hands-free is
+ *   connected (the live link is kept), on shutdown, at boot, and when the phone leaves the car
+ *   (hands-free gone with no AA session; a Wi-Fi drop alone doesn't count). Because it is
+ *   stored while connected, it is already in place at the next boot, even after a hard reset.
+ * - Released: as soon as a real AA session starts (AA then re-pairs hands-free itself), while
+ *   hands-free reconnects during an AA session, or 90 s after boot / after the phone comes
+ *   back without AA, in which case Bluetooth is cycled so the head unit reconnects normally.
  *
  * Manual control:
  *   am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_ARM
@@ -57,6 +59,8 @@ public class BtGuardService extends Service implements Handler.Callback {
     static final int MSG_AA_DOWN = 2;
     private static final int MSG_TIMEOUT = 3;
     private static final int MSG_CYCLE_DONE = 4;
+    private static final int MSG_HFP_CHECK = 5;
+    private static final long HFP_CHECK_MS = 5_000;
 
     private final Handler h = new Handler(Looper.getMainLooper(), this);
     private final Events events = new Events(this);
@@ -111,6 +115,13 @@ public class BtGuardService extends Service implements Handler.Callback {
             case MSG_AA_UP:
                 aaActive = true;
                 release("aa session", false);
+                if (hfpConnected()) BtGuard.arm(this, "hfp already connected");
+                else h.sendEmptyMessageDelayed(MSG_HFP_CHECK, HFP_CHECK_MS);
+                return true;
+            case MSG_HFP_CHECK:
+                // The phone gave up on hands-free while we were blocking it and doesn't retry:
+                // connect it from the head unit side so calls work in AA.
+                if (aaActive && !hfpConnected()) connectHfp();
                 return true;
             case MSG_AA_DOWN:
                 aaActive = false;
@@ -128,7 +139,18 @@ public class BtGuardService extends Service implements Handler.Callback {
     }
 
     void onHfpState(int state) {
-        if (state == BluetoothProfile.STATE_DISCONNECTED) maybeArmPhoneLeft();
+        if (state == BluetoothProfile.STATE_CONNECTED) {
+            // Keep the block stored while connected (it doesn't drop the live link), so it is
+            // already in place at the next boot however the head unit gets powered off.
+            BtGuard.arm(this, "hfp connected");
+        } else if (state == BluetoothProfile.STATE_DISCONNECTED) {
+            if (aaActive && !cycling) {
+                // Hands-free dropped during an AA session: let the phone reconnect it.
+                BtGuard.release(this, "hfp lost during aa");
+            } else {
+                maybeArmPhoneLeft();
+            }
+        }
     }
 
     void onAclConnected(BluetoothDevice d) {
@@ -141,7 +163,7 @@ public class BtGuardService extends Service implements Handler.Callback {
 
     /** Phone left: no hands-free and no AA session (a Wi-Fi drop alone keeps hands-free up). */
     private void maybeArmPhoneLeft() {
-        if (cycling || aaActive || BtGuard.isArmed(this) || hfpConnected()) return;
+        if (aaActive || BtGuard.isArmed(this) || hfpConnected()) return;
         BluetoothAdapter ad = BluetoothAdapter.getDefaultAdapter();
         if (ad == null || ad.getState() != BluetoothAdapter.STATE_ON) return;
         h.removeMessages(MSG_TIMEOUT);
@@ -159,6 +181,37 @@ public class BtGuardService extends Service implements Handler.Callback {
     private static boolean hfpConnected() {
         BluetoothAdapter ad = BluetoothAdapter.getDefaultAdapter();
         return ad != null && ad.getProfileConnectionState(HEADSET_CLIENT) != BluetoothProfile.STATE_DISCONNECTED;
+    }
+
+    private void connectHfp() {
+        BluetoothAdapter ad = BluetoothAdapter.getDefaultAdapter();
+        if (ad == null || !ad.isEnabled()) return;
+        ad.getProfileProxy(this, new HfpConnector(ad), HEADSET_CLIENT);
+    }
+
+    /** Asks the HFP client (@hide BluetoothHeadsetClient) to connect each bonded device. */
+    static final class HfpConnector implements BluetoothProfile.ServiceListener {
+        private final BluetoothAdapter ad;
+
+        HfpConnector(BluetoothAdapter ad) { this.ad = ad; }
+
+        @Override
+        public void onServiceConnected(int profile, BluetoothProfile proxy) {
+            try {
+                java.lang.reflect.Method connect = proxy.getClass().getMethod("connect", BluetoothDevice.class);
+                for (BluetoothDevice d : ad.getBondedDevices()) {
+                    Object ok = connect.invoke(proxy, d);
+                    Log.e(BtGuard.TAG, "hfp connect " + d.getAddress() + " -> " + ok);
+                }
+            } catch (Throwable t) {
+                Log.e(BtGuard.TAG, "hfp connect failed", t);
+            } finally {
+                ad.closeProfileProxy(profile, proxy);
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(int profile) {}
     }
 
     private void cycleBluetooth() {
