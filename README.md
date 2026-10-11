@@ -7,8 +7,18 @@ re‑plug** the cable to get it working.
 
 `com.mg4.aakick` makes that unplug/re‑plug happen automatically, in software, at boot.
 
-> Tested on an MG4 (EH32 platform, AOSP Automotive 9, MediaTek) with a wired Android phone.
-> Other SAIC cars using the same Allgo/`caradapter` stack (MG/Roewe) may benefit too.
+Since **v1.1.0** it also fixes **wireless Android Auto dongles** that connect to the phone but
+never start AA on the car, because the head unit grabs the phone over Bluetooth first
+(see [Wireless dongle fix](#wireless-dongle-fix-btguard)).
+
+> Tested on an MG4 (EH32 platform, AOSP Automotive 9, MediaTek) with a wired Android phone,
+> and with an Android phone + wireless AA dongle. Other SAIC cars using the same
+> Allgo/`caradapter` stack (MG/Roewe) may benefit too.
+
+> 🧪 **The wireless dongle fix seems to work perfectly so far, but it is still being tested.**
+> If you run into a problem (AA not starting, phone not reconnecting over Bluetooth…),
+> please [open an issue](https://github.com/Skittle6938/MG4-AndroidAuto-BootFix/issues)
+> with what happened and, if you can, the output of `adb logcat -d -s AAKick AABtGuard`.
 
 ## Scope & limitations
 
@@ -162,6 +172,16 @@ adb shell pm install -r -f /data/local/tmp/aakick.apk
 The app is a normal (non‑persistent) package installed into `/data/app`, so this works
 without root. It takes effect on the next boot — power‑cycle the car with the phone plugged
 in and Android Auto should start on its own.
+
+> ⚠️ **After a fresh install (or uninstall + reinstall), start the app once.** It has no
+> launcher icon, and Android keeps a never‑launched app in the "stopped" state, in which it
+> does **not** receive the boot event. Run this once (an in‑place update doesn't need it):
+>
+> ```bash
+> adb shell am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_BOOT
+> ```
+>
+> If after a reboot `adb logcat -d -s AAKick AABtGuard` shows nothing, this is why.
 
 ## Wireless dongle fix (BtGuard)
 
