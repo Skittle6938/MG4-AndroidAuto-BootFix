@@ -15,6 +15,21 @@ never start AA on the car, because the head unit grabs the phone over Bluetooth 
 > and with an Android phone + wireless AA dongle. Other SAIC cars using the same
 > Allgo/`caradapter` stack (MG/Roewe) may benefit too.
 
+### Firmware (SWI) compatibility
+
+| Firmware | Status |
+|---|---|
+| **SWI69** | ✅ Tested (wired boot fix + wireless dongle fix) |
+| SWI131 | 🟡 Very likely — same launcher, SDK and `caradapter` stack as SWI69 (per [MG4Control](https://github.com/SliDeeN/MG4Control)) |
+| SWI132 | 🟡 Likely — same `caradapter` stack as SWI69, not tested |
+| SWI133 / SWI68 / SWI165 | ❓ Unknown — different launcher/software base; the Bluetooth role and the AA stack's log lines may differ |
+
+If you try it on another SWI, please report it in an
+[issue](https://github.com/Skittle6938/MG4-AndroidAuto-BootFix/issues) (working or not), with
+`adb logcat -d -s AAKick AABtGuard GalReceiver`. On a firmware where the AA log line differs,
+the wireless fix still releases after its 180 s / 90 s safety delay, so it degrades to a
+slower Bluetooth reconnect rather than breaking Bluetooth.
+
 > 🧪 **The wireless dongle fix seems to work perfectly so far, but it is still being tested.**
 > If you run into a problem (AA not starting, phone not reconnecting over Bluetooth…),
 > please [open an issue](https://github.com/Skittle6938/MG4-AndroidAuto-BootFix/issues)
