@@ -54,8 +54,19 @@ final class BtGuard {
         return prefs(c).getBoolean("armed", false);
     }
 
+    /** Wireless dongle fix switch (in-app toggle). On by default. */
+    static boolean isEnabled(Context c) {
+        return prefs(c).getBoolean("enabled", true);
+    }
+
+    static void setEnabled(Context c, boolean on) {
+        prefs(c).edit().putBoolean("enabled", on).commit();
+        Log.e(TAG, on ? "enabled" : "disabled");
+    }
+
     /** Sets the client profiles to OFF, remembering the original values if not already armed. */
     static synchronized void arm(Context c, String why) {
+        if (!isEnabled(c)) return;
         ContentResolver cr = c.getContentResolver();
         SharedPreferences p = prefs(c);
         boolean already = p.getBoolean("armed", false);

@@ -15,7 +15,18 @@
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
     <uses-permission android:name="android.permission.READ_LOGS"/>
 
-    <application android:label="AA Kick" android:allowBackup="false">
+    <application android:label="AA Kick" android:allowBackup="false"
+        android:icon="@android:drawable/stat_sys_data_bluetooth"
+        android:theme="@android:style/Theme.Material">
+        <activity
+            android:name=".MainActivity"
+            android:label="AA Kick"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"

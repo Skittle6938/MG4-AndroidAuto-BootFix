@@ -45,6 +45,8 @@ public class BtGuardService extends Service implements Handler.Callback {
     static final String ACTION_BOOT = "com.mg4.aakick.BT_BOOT";
     static final String ACTION_ARM = "com.mg4.aakick.BT_ARM";
     static final String ACTION_RELEASE = "com.mg4.aakick.BT_RELEASE";
+    static final String ACTION_ENABLE = "com.mg4.aakick.BT_ENABLE";
+    static final String ACTION_DISABLE = "com.mg4.aakick.BT_DISABLE";
 
     private static final long TIMEOUT_MS = 90_000;       // after the phone comes back
     private static final long BOOT_TIMEOUT_MS = 180_000; // cold start: the dongle boots slower
@@ -91,6 +93,23 @@ public class BtGuardService extends Service implements Handler.Callback {
     @Override
     public int onStartCommand(Intent i, int flags, int startId) {
         String a = i != null ? i.getAction() : null;
+        if (ACTION_DISABLE.equals(a)) {
+            // In-app switch off: restore Bluetooth (reconnecting the phone) and stop.
+            BtGuard.setEnabled(this, false);
+            release("disabled", true);
+            if (!cycling) stopSelf();
+            return START_NOT_STICKY;
+        }
+        if (ACTION_ENABLE.equals(a)) {
+            BtGuard.setEnabled(this, true);
+            started = true; // just start watching; no Bluetooth cycle while the user is in the car
+            if (hfpConnected()) BtGuard.arm(this, "enabled");
+            return START_STICKY;
+        }
+        if (!BtGuard.isEnabled(this)) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         if (ACTION_ARM.equals(a)) {
             BtGuard.arm(this, "manual");
         } else if (ACTION_RELEASE.equals(a)) {
@@ -134,6 +153,7 @@ public class BtGuardService extends Service implements Handler.Callback {
                 return true;
             case MSG_CYCLE_DONE:
                 cycling = false;
+                if (!BtGuard.isEnabled(this)) stopSelf();
                 return true;
         }
         return false;
