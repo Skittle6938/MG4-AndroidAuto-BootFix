@@ -26,23 +26,31 @@ saying whether it works helps everyone.
 
 ## Install
 
+Download **[aakick-signed.apk](https://github.com/Skittle6938/MG4-AndroidAuto-BootFix/releases/latest/download/aakick-signed.apk)**, then:
+
+### Option A — USB stick (no computer needed)
+
+1. Copy the APK to a USB stick and plug it into the car.
+2. Open the APK with the head unit's built-in file manager and install it.
+3. Restart the head unit (hold **Home** ~20 s).
+
+If nothing changes after the restart, the app was never started once (Android doesn't run a
+never-launched app at boot, and this one has no icon): do step 3 of Option B once.
+
+### Option B — ADB
+
 1. **Enable ADB** on the head unit with **ADB_util** by Leon Kerman
    ([XDA thread](https://xdaforums.com/t/mg4-electric-aaos-9-playing-and-possibly-other-mg-models.4697712/post-90591053)).
-2. Download **[aakick-signed.apk](https://github.com/Skittle6938/MG4-AndroidAuto-BootFix/releases/latest/download/aakick-signed.apk)**
-   and install it:
+2. Install the APK:
    ```bash
    adb push aakick-signed.apk /data/local/tmp/aakick.apk
    adb shell pm install -r -f /data/local/tmp/aakick.apk
    ```
-3. **First install only:** start it once. The app has no icon, and Android doesn't run a
-   never-launched app at boot:
+3. **First install only:** start it once:
    ```bash
    adb shell am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_BOOT
    ```
 4. Restart the head unit (hold **Home** ~20 s). Done.
-
-You can also install the APK from a USB stick with the built-in file manager, but step 3
-still needs ADB.
 
 ## Uninstall
 
@@ -116,7 +124,7 @@ adb shell "dumpsys usb | grep vendor_id"                                        
 adb shell am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_ARM  # block manually (BT_RELEASE to release)
 ```
 
-No log at all after a reboot means the app was never started once (install step 3).
+No log at all after a reboot means the app was never started once (Option B, step 3).
 
 ## Build
 
