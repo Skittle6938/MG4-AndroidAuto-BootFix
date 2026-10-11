@@ -34,7 +34,7 @@ import java.util.Locale;
  *   (hands-free gone with no AA session; a Wi-Fi drop alone doesn't count). Because it is
  *   stored while connected, it is already in place at the next boot, even after a hard reset.
  * - Released: as soon as a real AA session starts (AA then re-pairs hands-free itself), while
- *   hands-free reconnects during an AA session, or 90 s after boot / after the phone comes
+ *   hands-free reconnects during an AA session, or 180 s after boot / 90 s after the phone comes
  *   back without AA, in which case Bluetooth is cycled so the head unit reconnects normally.
  *
  * Manual control:
@@ -46,7 +46,8 @@ public class BtGuardService extends Service implements Handler.Callback {
     static final String ACTION_ARM = "com.mg4.aakick.BT_ARM";
     static final String ACTION_RELEASE = "com.mg4.aakick.BT_RELEASE";
 
-    private static final long TIMEOUT_MS = 90_000;
+    private static final long TIMEOUT_MS = 90_000;       // after the phone comes back
+    private static final long BOOT_TIMEOUT_MS = 180_000; // cold start: the dongle boots slower
     private static final int HEADSET_CLIENT = 16; // BluetoothProfile.HEADSET_CLIENT (@hide)
     private static final String HFP_CLIENT_STATE =
             "android.bluetooth.headsetclient.profile.action.CONNECTION_STATE_CHANGED";
@@ -104,7 +105,7 @@ public class BtGuardService extends Service implements Handler.Callback {
                 Log.e(BtGuard.TAG, "phone already connected to head unit, cycling Bluetooth");
                 cycleBluetooth();
             }
-            h.sendEmptyMessageDelayed(MSG_TIMEOUT, TIMEOUT_MS);
+            h.sendEmptyMessageDelayed(MSG_TIMEOUT, BOOT_TIMEOUT_MS);
         }
         return START_STICKY;
     }
@@ -128,7 +129,7 @@ public class BtGuardService extends Service implements Handler.Callback {
                 maybeArmPhoneLeft();
                 return true;
             case MSG_TIMEOUT:
-                Log.e(BtGuard.TAG, "no AA session after " + TIMEOUT_MS / 1000 + "s");
+                Log.e(BtGuard.TAG, "no AA session in time, releasing");
                 release("timeout", true);
                 return true;
             case MSG_CYCLE_DONE:

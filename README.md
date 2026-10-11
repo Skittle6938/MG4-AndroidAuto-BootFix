@@ -197,7 +197,7 @@ phones (`bluetooth_headset_priority_*`, `bluetooth_a2dp_src_priority_*`,
 - **Released** as soon as a real AA session starts (detected from the AA stack's
   `Service discovery callback called` log line). If hands‑free doesn't come back on its own
   within 5 s, the head unit connects it, then re‑arms.
-- **Safety net:** if no AA session starts within 90 s of boot or of the phone coming back
+- **Safety net:** if no AA session starts within 180 s of boot (cold starts can be slow) or 90 s of the phone coming back
   (no dongle, AA disabled…), it releases and cycles the head unit's Bluetooth so the phone
   reconnects normally.
 
