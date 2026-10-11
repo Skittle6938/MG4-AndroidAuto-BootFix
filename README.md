@@ -8,6 +8,11 @@ Android Auto problems:
 | **Wired phone** plugged in before the car starts | AA doesn't start until you unplug and replug the cable | AA starts on its own |
 | **Wireless AA dongle** | The dongle connects to the phone but AA never shows on the car. Only deleting the MG4 from the phone's Bluetooth helps, until next time | AA starts through the dongle, at startup and when you come back to the car |
 
+> ⏳ **Be patient, it is not instant.** At startup the head unit, the dongle and the phone all
+> have to come up first: in our tests Android Auto appeared **about a minute** after the
+> screen turned on, and hands-free (calls) a few seconds after that. If AA hasn't shown
+> up after the wait set in the app (180 s by default), the car falls back to normal Bluetooth.
+
 > 🧪 The wireless dongle fix (since v1.1.0) works well so far but is **still being tested**.
 > If something goes wrong, please [open an issue](https://github.com/Skittle6938/MG4-AndroidAuto-BootFix/issues)
 > and include `adb logcat -d -s AAKick AABtGuard GalReceiver` if you can.
@@ -84,6 +89,8 @@ adb shell settings put global bluetooth_pbap_client_priority_AA:BB:CC:DD:EE:FF -
 
 ## Known limitations
 
+- **Not instant:** Android Auto through the dongle typically takes about a minute after the
+  head unit starts (see above). Don't replug the dongle or toggle Bluetooth in the meantime.
 - **Turning the phone's Wi-Fi off/on while driving** isn't covered: turn the phone's
   Bluetooth off/on instead (or replug the dongle).
 - **Other phones paired to the car** without a dongle connect over Bluetooth up to 180 s
