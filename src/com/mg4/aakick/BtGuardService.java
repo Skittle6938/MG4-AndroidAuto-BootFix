@@ -291,7 +291,7 @@ public class BtGuardService extends Service implements Handler.Callback {
                         else if (line.contains(AA_DOWN)) target.sendEmptyMessage(MSG_AA_DOWN);
                     }
                 } catch (Exception e) {
-                    Log.e(BtGuard.TAG, "logcat watcher", e);
+                    if (!killed) Log.e(BtGuard.TAG, "logcat watcher", e); // a kill() interrupts the read
                 }
                 if (!killed) pause(2000);
             }

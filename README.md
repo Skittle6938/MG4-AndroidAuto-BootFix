@@ -1,6 +1,6 @@
 # AA Kick — Android Auto fixes for the MG4
 
-A small background app for the **MG4** head unit (SAIC, Android Automotive 9) that fixes two
+A small app for the **MG4** head unit (SAIC, Android Automotive 9) that fixes two
 Android Auto problems:
 
 | Problem | Without AA Kick | With AA Kick |
@@ -8,7 +8,7 @@ Android Auto problems:
 | **Wired phone** plugged in before the car starts | AA doesn't start until you unplug and replug the cable | AA starts on its own |
 | **Wireless AA dongle** | The dongle connects to the phone but AA never shows on the car. Only deleting the MG4 from the phone's Bluetooth helps, until next time | AA starts through the dongle, at startup and when you come back to the car |
 
-> 🧪 The wireless dongle fix (v1.1.0) works well so far but is **still being tested**.
+> 🧪 The wireless dongle fix (since v1.1.0) works well so far but is **still being tested**.
 > If something goes wrong, please [open an issue](https://github.com/Skittle6938/MG4-AndroidAuto-BootFix/issues)
 > and include `adb logcat -d -s AAKick AABtGuard GalReceiver` if you can.
 
@@ -32,10 +32,9 @@ Download **[aakick-signed.apk](https://github.com/Skittle6938/MG4-AndroidAuto-Bo
 
 1. Copy the APK to a USB stick and plug it into the car.
 2. Open the APK with the head unit's built-in file manager and install it.
-3. Restart the head unit (hold **Home** ~20 s).
-
-If nothing changes after the restart, the app was never started once (Android doesn't run a
-never-launched app at boot, and this one has no icon): do step 3 of Option B once.
+3. **Open the AA Kick app once** (Bluetooth icon in the app list). Android doesn't run a
+   never-opened app at boot.
+4. Restart the head unit (hold **Home** ~20 s). Done.
 
 ### Option B — ADB
 
@@ -46,20 +45,29 @@ never-launched app at boot, and this one has no icon): do step 3 of Option B onc
    adb push aakick-signed.apk /data/local/tmp/aakick.apk
    adb shell pm install -r -f /data/local/tmp/aakick.apk
    ```
-3. **First install only:** start it once:
+3. **First install only:** open the AA Kick app once on the car, or run:
    ```bash
    adb shell am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_BOOT
    ```
 4. Restart the head unit (hold **Home** ~20 s). Done.
 
-## Uninstall
+## On/off switch and uninstall
 
-Release the Bluetooth block **first**, otherwise the car won't auto-connect to your phone
-anymore:
+The **AA Kick** app has a switch for the wireless dongle fix. Turning it **off** restores the
+car's normal Bluetooth (the car reconnects to your phone) and stops the fix, also at startup.
+The wired USB fix stays active either way.
+
+**Turn the switch off before uninstalling**, otherwise the car won't auto-connect to your
+phone over Bluetooth anymore. Then uninstall it (from the car's app settings if your launcher allows it, or
+`adb shell pm uninstall com.mg4.aakick`).
+
+Already uninstalled without turning it off? Reinstall, turn the switch off, uninstall again.
+Or, with ADB, reset the 3 priorities for your phone (replace the address):
 
 ```bash
-adb shell am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_RELEASE
-adb shell pm uninstall com.mg4.aakick
+adb shell settings put global bluetooth_headset_priority_AA:BB:CC:DD:EE:FF -1
+adb shell settings put global bluetooth_a2dp_src_priority_AA:BB:CC:DD:EE:FF -1
+adb shell settings put global bluetooth_pbap_client_priority_AA:BB:CC:DD:EE:FF -1
 ```
 
 ## Known limitations
@@ -124,7 +132,7 @@ adb shell "dumpsys usb | grep vendor_id"                                        
 adb shell am startservice -n com.mg4.aakick/.BtGuardService -a com.mg4.aakick.BT_ARM  # block manually (BT_RELEASE to release)
 ```
 
-No log at all after a reboot means the app was never started once (Option B, step 3).
+No log at all after a reboot means the app was never opened once (Install, step 3).
 
 ## Build
 
@@ -143,6 +151,7 @@ Why a separate app and not a patched caradapter: it is a persistent system app
 
 ```
 src/com/mg4/aakick/
+  MainActivity.java     # app screen: on/off switch for the wireless fix
   BootReceiver.java     # starts the services at boot, saves the BT block at shutdown
   KickService.java      # wired fix: detect → USB reset → re-send USB_DEVICE_ATTACHED
   KickWorker.java       # worker thread for KickService
