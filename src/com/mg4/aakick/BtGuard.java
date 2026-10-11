@@ -64,6 +64,18 @@ final class BtGuard {
         Log.e(TAG, on ? "enabled" : "disabled");
     }
 
+    // ── User settings (app screen) ────────────────────────────────────────────
+    static final String S_BOOT_WAIT = "boot_wait_s";        // wait for AA after startup
+    static final String S_RETURN_WAIT = "return_wait_s";    // wait for AA after the phone comes back
+    static final String S_CYCLE_AT_BOOT = "cycle_at_boot";  // cut BT if the car already took the phone
+    static final String S_HFP_RECONNECT = "hfp_reconnect";  // reconnect hands-free after AA starts
+    static final String S_USB_KICK = "usb_kick";            // wired-phone USB fix at boot
+
+    static int getInt(Context c, String key, int def) { return prefs(c).getInt(key, def); }
+    static boolean getBool(Context c, String key, boolean def) { return prefs(c).getBoolean(key, def); }
+    static void put(Context c, String key, int v) { prefs(c).edit().putInt(key, v).commit(); }
+    static void put(Context c, String key, boolean v) { prefs(c).edit().putBoolean(key, v).commit(); }
+
     /** Sets the client profiles to OFF, remembering the original values if not already armed. */
     static synchronized void arm(Context c, String why) {
         if (!isEnabled(c)) return;

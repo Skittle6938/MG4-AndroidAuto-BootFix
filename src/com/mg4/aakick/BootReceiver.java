@@ -16,11 +16,13 @@ public class BootReceiver extends BroadcastReceiver {
             BtGuard.arm(ctx, "shutdown");
             return;
         }
-        Intent s = new Intent(ctx, KickService.class);
-        if (Build.VERSION.SDK_INT >= 26) {
-            ctx.startForegroundService(s);
-        } else {
-            ctx.startService(s);
+        if (BtGuard.getBool(ctx, BtGuard.S_USB_KICK, true)) {
+            Intent s = new Intent(ctx, KickService.class);
+            if (Build.VERSION.SDK_INT >= 26) {
+                ctx.startForegroundService(s);
+            } else {
+                ctx.startService(s);
+            }
         }
         ctx.startService(new Intent(ctx, BtGuardService.class).setAction(BtGuardService.ACTION_BOOT));
     }

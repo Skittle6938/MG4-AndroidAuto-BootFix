@@ -48,8 +48,9 @@ public class BtGuardService extends Service implements Handler.Callback {
     static final String ACTION_ENABLE = "com.mg4.aakick.BT_ENABLE";
     static final String ACTION_DISABLE = "com.mg4.aakick.BT_DISABLE";
 
-    private static final long TIMEOUT_MS = 90_000;       // after the phone comes back
-    private static final long BOOT_TIMEOUT_MS = 180_000; // cold start: the dongle boots slower
+    // Defaults, adjustable in the app screen (BtGuard settings).
+    static final int DEF_RETURN_WAIT_S = 90; // after the phone comes back
+    static final int DEF_BOOT_WAIT_S = 180;  // after startup: cold starts can be slow
     private static final int HEADSET_CLIENT = 16; // BluetoothProfile.HEADSET_CLIENT (@hide)
     private static final String HFP_CLIENT_STATE =
             "android.bluetooth.headsetclient.profile.action.CONNECTION_STATE_CHANGED";
@@ -119,12 +120,12 @@ public class BtGuardService extends Service implements Handler.Callback {
         } else if (!started) {
             started = true;
             BtGuard.arm(this, "boot");
-            if (hfpConnected()) {
+            if (hfpConnected() && BtGuard.getBool(this, BtGuard.S_CYCLE_AT_BOOT, true)) {
                 // The head unit already took the phone: drop it so the dongle gets a chance.
                 Log.e(BtGuard.TAG, "phone already connected to head unit, cycling Bluetooth");
                 cycleBluetooth();
             }
-            h.sendEmptyMessageDelayed(MSG_TIMEOUT, BOOT_TIMEOUT_MS);
+            h.sendEmptyMessageDelayed(MSG_TIMEOUT, 1000L * BtGuard.getInt(this, BtGuard.S_BOOT_WAIT, DEF_BOOT_WAIT_S));
         }
         return START_STICKY;
     }
@@ -141,7 +142,7 @@ public class BtGuardService extends Service implements Handler.Callback {
             case MSG_HFP_CHECK:
                 // The phone gave up on hands-free while we were blocking it and doesn't retry:
                 // connect it from the head unit side so calls work in AA.
-                if (aaActive && !hfpConnected()) connectHfp();
+                if (aaActive && !hfpConnected() && BtGuard.getBool(this, BtGuard.S_HFP_RECONNECT, true)) connectHfp();
                 return true;
             case MSG_AA_DOWN:
                 aaActive = false;
@@ -175,10 +176,10 @@ public class BtGuardService extends Service implements Handler.Callback {
     }
 
     void onAclConnected(BluetoothDevice d) {
-        // The phone is back while we block: give it 90 s to come up through the dongle.
+        // The phone is back while we block: give it some time to come up through the dongle.
         if (BtGuard.isArmed(this) && !h.hasMessages(MSG_TIMEOUT) && d.getBondState() == BluetoothDevice.BOND_BONDED) {
             Log.e(BtGuard.TAG, "device back while armed: " + d.getAddress());
-            h.sendEmptyMessageDelayed(MSG_TIMEOUT, TIMEOUT_MS);
+            h.sendEmptyMessageDelayed(MSG_TIMEOUT, 1000L * BtGuard.getInt(this, BtGuard.S_RETURN_WAIT, DEF_RETURN_WAIT_S));
         }
     }
 

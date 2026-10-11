@@ -51,11 +51,23 @@ Download **[aakick-signed.apk](https://github.com/Skittle6938/MG4-AndroidAuto-Bo
    ```
 4. Restart the head unit (hold **Home** ~20 s). Done.
 
-## On/off switch and uninstall
+## Settings
 
-The **AA Kick** app has a switch for the wireless dongle fix. Turning it **off** restores the
-car's normal Bluetooth (the car reconnects to your phone) and stops the fix, also at startup.
-The wired USB fix stays active either way.
+Open the **AA Kick** app (Bluetooth icon in the app list). The screen follows the car's
+language (French, otherwise English).
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Wireless Android Auto dongle fix** | On | Main switch. Off = the car's normal Bluetooth is restored and the fix stays off, also at startup |
+| Wait for Android Auto at startup | 180 s | If AA doesn't arrive in time, the car reconnects to the phone over normal Bluetooth. Raise it if AA sometimes misses a cold start |
+| Wait for Android Auto when you come back | 90 s | Same, when you come back to a car that stayed on |
+| Cut Bluetooth at startup if needed | On | If the car already took the phone at startup, turns its Bluetooth off and on to give the dongle a chance |
+| Reconnect hands-free after AA starts | On | If hands-free doesn't come back on its own, the car reconnects it (needed for calls in AA) |
+| Wired phone fix (USB) | On | The USB re-detection at startup for a phone plugged in by cable. Independent of the dongle fix |
+
+Delays apply from the next startup or return. **Restore defaults** resets everything but the main switch.
+
+## Uninstall
 
 **Turn the switch off before uninstalling**, otherwise the car won't auto-connect to your
 phone over Bluetooth anymore. Then uninstall it (from the car's app settings if your launcher allows it, or
@@ -75,7 +87,7 @@ adb shell settings put global bluetooth_pbap_client_priority_AA:BB:CC:DD:EE:FF -
 - **Turning the phone's Wi-Fi off/on while driving** isn't covered: turn the phone's
   Bluetooth off/on instead (or replug the dongle).
 - **Other phones paired to the car** without a dongle connect over Bluetooth up to 180 s
-  (at startup) or 90 s (car already on) later than usual.
+  (at startup) or 90 s (car already on) later than usual (adjustable in the app).
 
 ---
 
@@ -118,7 +130,7 @@ is never dropped), so the dongle reaches the phone first:
   turned off and on.
 - **Released** as soon as a real AA session starts. If hands-free doesn't come back on its
   own within 5 s, the car reconnects it (so calls work in AA), then blocks again for next time.
-- **Safety net:** without AA after 180 s (startup) or 90 s (phone back), it releases and lets
+- **Safety net:** without AA after 180 s (startup) or 90 s (phone back), both adjustable, it releases and lets
   the car reconnect over normal Bluetooth.
 
 On a firmware where the AA log line differs, the block only lifts through the safety net:
